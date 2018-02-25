@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"path"
@@ -40,9 +41,10 @@ type keyValuePair struct {
 }
 
 type keyNameRC struct {
-	key   string
-	name  string
-	value io.ReadCloser
+	key         string
+	name        string
+	contentType string
+	value       io.ReadCloser
 }
 
 type formDataPayload struct {
@@ -120,8 +122,14 @@ func (f *formDataPayload) addFile(key, file string) {
 	f.Files = append(f.Files, keyValuePair{key: key, value: file})
 }
 
-func (f *formDataPayload) addReadCloser(key, name string, rc io.ReadCloser) {
-	f.ReadClosers = append(f.ReadClosers, keyNameRC{key: key, name: name, value: rc})
+func (f *formDataPayload) addReadCloser(key, name string, contentType string, rc io.ReadCloser) {
+	f.ReadClosers = append(f.ReadClosers, keyNameRC{key: key, contentType: contentType, name: name, value: rc})
+}
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
 }
 
 func (f *formDataPayload) getPayloadBuffer() (*bytes.Buffer, error) {
@@ -151,7 +159,14 @@ func (f *formDataPayload) getPayloadBuffer() (*bytes.Buffer, error) {
 	}
 
 	for _, file := range f.ReadClosers {
-		if tmp, err := writer.CreateFormFile(file.key, file.name); err == nil {
+		fmt.Println("file", file)
+		h := make(textproto.MIMEHeader)
+		h.Set("Content-Disposition",
+			fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+				escapeQuotes(file.key), escapeQuotes(file.name)))
+		h.Set("Content-Type", file.contentType)
+
+		if tmp, err := writer.CreatePart(h); err == nil {
 			defer file.value.Close()
 			io.Copy(tmp, file.value)
 		} else {
