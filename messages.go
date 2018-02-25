@@ -43,8 +43,9 @@ type Message struct {
 }
 
 type ReaderAttachment struct {
-	Filename   string
-	ReadCloser io.ReadCloser
+	Filename    string
+	ContentType string
+	ReadCloser  io.ReadCloser
 }
 
 // StoredMessage structures contain the (parsed) message content for an email
@@ -512,7 +513,7 @@ func (m *MailgunImpl) Send(message *Message) (mes string, id string, err error) 
 	}
 	if message.readerAttachments != nil {
 		for _, readerAttachment := range message.readerAttachments {
-			payload.addReadCloser("attachment", readerAttachment.Filename, readerAttachment.ReadCloser)
+			payload.addReadCloser("attachment", readerAttachment.Filename, readerAttachment.ContentType, readerAttachment.ReadCloser)
 		}
 	}
 	if message.inlines != nil {
@@ -523,7 +524,7 @@ func (m *MailgunImpl) Send(message *Message) (mes string, id string, err error) 
 
 	if message.readerInlines != nil {
 		for _, readerAttachment := range message.readerInlines {
-			payload.addReadCloser("inline", readerAttachment.Filename, readerAttachment.ReadCloser)
+			payload.addReadCloser("inline", readerAttachment.Filename, readerAttachment.ContentType, readerAttachment.ReadCloser)
 		}
 	}
 
@@ -561,7 +562,7 @@ func (pm *plainMessage) addValues(p *formDataPayload) {
 }
 
 func (mm *mimeMessage) addValues(p *formDataPayload) {
-	p.addReadCloser("message", "message.mime", mm.body)
+	p.addReadCloser("message", "message.mime", "", mm.body)
 }
 
 func (pm *plainMessage) endpoint() string {
