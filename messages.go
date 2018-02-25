@@ -243,8 +243,8 @@ func (m *Message) AddAttachment(attachment string) {
 // The filename parameter is the resulting filename of the attachment.
 // The readCloser parameter is the io.ReadCloser which reads the actual bytes to be used
 // as the contents of the attached file.
-func (m *Message) AddReaderInline(filename string, readCloser io.ReadCloser) {
-	ra := ReaderAttachment{Filename: filename, ReadCloser: readCloser}
+func (m *Message) AddReaderInline(filename string, contentType string, readCloser io.ReadCloser) {
+	ra := ReaderAttachment{Filename: filename, ContentType: contentType, ReadCloser: readCloser}
 	m.readerInlines = append(m.readerInlines, ra)
 }
 
